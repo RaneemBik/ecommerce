@@ -6,12 +6,12 @@ export default defineConfig({
     // Proxy API requests to the backend during development
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
       },
       '/health': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:4000',
         changeOrigin: true,
         secure: false,
       }
