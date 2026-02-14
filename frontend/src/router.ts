@@ -5,6 +5,7 @@
 import { renderLogin } from "./components/LoginComponent";
 import { renderRegister } from "./components/RegisterComponent";
 import { renderAdmin } from "./components/AdminComponent";
+import { isAuthenticated } from "./services/api";
 
 const root = () => document.getElementById("app")!;
 
@@ -38,13 +39,13 @@ export function initRouter(): void {
   const path = location.pathname;
 
   // If user already logged in and on root or register, redirect to admin
-  if ((path === "/" || path === "/register") && localStorage.getItem("novadash_user")) {
+  if ((path === "/" || path === "/register") && isAuthenticated()) {
     navigate("/admin");
     return;
   }
 
   // If user not logged in and trying to access any admin route, redirect to login
-  if (path.startsWith("/admin") && !localStorage.getItem("novadash_user")) {
+  if (path.startsWith("/admin") && !isAuthenticated()) {
     navigate("/");
     return;
   }
@@ -53,6 +54,11 @@ export function initRouter(): void {
 }
 
 function render(path: string): void {
+  if (path.startsWith("/admin") && !isAuthenticated()) {
+    navigate("/");
+    return;
+  }
+
   if (path === "/") {
     renderLogin(root());
     return;

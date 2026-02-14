@@ -1,208 +1,303 @@
-const STORAGE_KEY = 'novadash_orders';
+import {
+  createOrder,
+  deleteOrder,
+  listOrders,
+  listProducts,
+  listUsers,
+  updateOrder,
+  type Customer,
+  type Order,
+  type OrderPriority,
+  type OrderStatus,
+  type Product,
+} from '../../services/adminApi';
+import { confirmModal, showToast } from '../../ui/modal';
 
-interface Order {
-  id: number;
-  orderNumber: string;
-  user: string;
-  total: number;
-  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'canceled';
-  date: string;
+type OrderQuery = {
+  page: number;
+  limit: number;
+  sort: string;
+  order: 'asc' | 'desc';
+  search: string;
+  status: '' | OrderStatus;
+  priority: '' | OrderPriority;
+  from: string;
+  to: string;
+};
+
+const initialQuery: OrderQuery = {
+  page: 1,
+  limit: 10,
+  sort: 'createdAt',
+  order: 'desc',
+  search: '',
+  status: '',
+  priority: '',
+  from: '',
+  to: '',
+};
+
+function formatDate(value?: string) {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleString();
 }
 
-function loadOrders(): Order[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return getDefaultOrders();
-    const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed)) return getDefaultOrders();
-    // normalize entries to expected shape and provide safe defaults
-    const normalized = parsed.map((o: any, idx: number) => ({
-      id: typeof o.id === 'number' ? o.id : (idx + 1),
-      orderNumber: String(o.orderNumber ?? o.order ?? `#${1000 + (o.id || idx + 1)}`),
-      user: String(o.user ?? o.customer ?? 'Unknown'),
-      total: Number(o.total ?? 0) || 0,
-      status: o.status === 'paid' || o.status === 'shipped' || o.status === 'delivered' || o.status === 'canceled' ? o.status : 'pending',
-      date: String(o.date ?? new Date().toISOString().split('T')[0])
-    } as Order));
-    // If normalization changed data shape, persist corrected copy
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized)); } catch (e) {}
-    return normalized;
-  } catch {
-    const defaults = getDefaultOrders();
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults)); } catch (e) {}
-    return defaults;
-  }
+function customerName(order: Order) {
+  if (typeof order.customerId === 'string') return order.customerId;
+  return order.customerId?.name || '-';
 }
 
-function saveOrders(orders: Order[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(orders)); } catch (e) {}
-  // notify app about data change so badges and other views can update
-  window.dispatchEvent(new Event('novadash:data-changed'));
-}
-
-function getDefaultOrders(): Order[] {
-  return [
-    { id: 1, orderNumber: '#1024', user: 'Sarah Chen', total: 1240, status: 'paid', date: '2026-02-11' },
-    { id: 2, orderNumber: '#1023', user: 'Mike Ross', total: 320, status: 'pending', date: '2026-02-10' },
-    { id: 3, orderNumber: '#1022', user: 'Anna Kowalski', total: 89, status: 'canceled', date: '2026-02-09' },
-  ];
-}
-
-function getStatusBadgeClass(status: Order['status']): string {
-  switch (status) {
-    case 'paid': return 'badge--active';
-    case 'pending': return 'badge--pending';
-    case 'shipped': return 'badge--primary';
-    case 'delivered': return 'badge--active';
-    case 'canceled': return 'badge--inactive';
-  }
-}
-
-function exportOrdersCSV(orders: Order[]): void {
-  const headers = ['Order', 'User', 'Total', 'Status', 'Date'];
-  const rows = orders.map(o => [o.orderNumber, o.user, `$${o.total}`, o.status, o.date]);
-  const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `orders-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// show a modal popup with order details
-function showOrderModal(order: Order) {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-
-  const modal = document.createElement('div');
-  modal.className = 'modal modal--dark';
-  modal.innerHTML = `
-    <div class="modal__header">
-      <h3>Order ${order.orderNumber}</h3>
-      <button class="modal__close" aria-label="Close">&times;</button>
-    </div>
-    <div class="modal__content">
-      <p><strong>User:</strong> ${order.user}</p>
-      <p><strong>Total:</strong> $${order.total.toFixed(2)}</p>
-      <p><strong>Status:</strong> ${order.status}</p>
-      <p><strong>Date:</strong> ${order.date}</p>
-    </div>
-    <div class="modal__actions">
-      <button class="btn btn--primary modal-close-btn">OK</button>
-    </div>
-  `;
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-
-  const cleanup = () => { try { document.body.removeChild(overlay); } catch (e) {} };
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
-  modal.querySelector('.modal__close')?.addEventListener('click', cleanup);
-  modal.querySelector('.modal-close-btn')?.addEventListener('click', cleanup);
+function productName(product: Product | string) {
+  if (typeof product === 'string') return product;
+  return product.name;
 }
 
 export function renderOrders(container: HTMLElement) {
-  const orders = loadOrders();
+  let query: OrderQuery = { ...initialQuery };
 
-  container.innerHTML = `
-    <h1 class="page-title">Orders</h1>
-    <p class="page-subtitle">Recent orders and fulfillment status.</p>
+  async function loadData() {
+    container.innerHTML = `<h1 class="page-title">Orders</h1><p class="page-subtitle">Manage orders with real backend data.</p><div class="panel">Loading orders...</div>`;
+    try {
+      const [ordersResult, usersResult, productsResult] = await Promise.all([
+        listOrders(query),
+        listUsers({ page: 1, limit: 100, sort: 'name', order: 'asc' }),
+        listProducts({ page: 1, limit: 100, sort: 'name', order: 'asc' }),
+      ]);
+      render(ordersResult.items, ordersResult.total, ordersResult.page, ordersResult.pages, usersResult.items, productsResult.items);
+    } catch (error: any) {
+      container.innerHTML = `<h1 class="page-title">Orders</h1><p class="page-subtitle">Manage orders with real backend data.</p><div class="panel">Error: ${error.message || 'Failed to load orders'}</div>`;
+    }
+  }
 
-    <div class="panel">
-      <div class="panel__header">
-        <h3 class="panel__title">Recent Orders (${orders.length})</h3>
-        <button class="panel__action" id="exportOrdersBtn">Export CSV</button>
+  function render(items: Order[], total: number, page: number, pages: number, users: Customer[], products: Product[]) {
+    container.innerHTML = `
+      <h1 class="page-title">Orders</h1>
+      <p class="page-subtitle">Manage orders with real backend data.</p>
+
+      <div class="panel" style="margin-bottom:12px">
+        <div class="panel__header"><h3 class="panel__title">Filters</h3></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">
+          <input id="qSearch" class="form-input" placeholder="Search by customer name/email" value="${query.search}" />
+          <select id="qStatus" class="form-input">
+            <option value="" ${query.status === '' ? 'selected' : ''}>Status: All</option>
+            <option value="pending" ${query.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="paid" ${query.status === 'paid' ? 'selected' : ''}>Paid</option>
+            <option value="shipped" ${query.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+            <option value="delivered" ${query.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+            <option value="cancelled" ${query.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+          <select id="qPriority" class="form-input">
+            <option value="" ${query.priority === '' ? 'selected' : ''}>Priority: All</option>
+            <option value="low" ${query.priority === 'low' ? 'selected' : ''}>Low</option>
+            <option value="medium" ${query.priority === 'medium' ? 'selected' : ''}>Medium</option>
+            <option value="high" ${query.priority === 'high' ? 'selected' : ''}>High</option>
+          </select>
+          <input id="qFrom" class="form-input" type="date" value="${query.from}" />
+          <input id="qTo" class="form-input" type="date" value="${query.to}" />
+          <select id="qSort" class="form-input">
+            <option value="createdAt" ${query.sort === 'createdAt' ? 'selected' : ''}>Sort: Created At</option>
+            <option value="updatedAt" ${query.sort === 'updatedAt' ? 'selected' : ''}>Sort: Updated At</option>
+            <option value="total" ${query.sort === 'total' ? 'selected' : ''}>Sort: Total</option>
+            <option value="status" ${query.sort === 'status' ? 'selected' : ''}>Sort: Status</option>
+            <option value="priority" ${query.sort === 'priority' ? 'selected' : ''}>Sort: Priority</option>
+          </select>
+          <select id="qOrder" class="form-input">
+            <option value="desc" ${query.order === 'desc' ? 'selected' : ''}>Order: Desc</option>
+            <option value="asc" ${query.order === 'asc' ? 'selected' : ''}>Order: Asc</option>
+          </select>
+          <select id="qLimit" class="form-input">
+            <option value="10" ${query.limit === 10 ? 'selected' : ''}>10 / page</option>
+            <option value="20" ${query.limit === 20 ? 'selected' : ''}>20 / page</option>
+            <option value="50" ${query.limit === 50 ? 'selected' : ''}>50 / page</option>
+          </select>
+          <button id="applyFilters" class="btn btn--primary">Apply</button>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead><tr><th>Order</th><th>User</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody id="ordersTableBody">
-            ${orders.map(order => `
-              <tr data-order-id="${order.id}">
-                <td>${order.orderNumber}</td>
-                <td>${order.user}</td>
-                <td>$${order.total.toFixed(2)}</td>
-                <td>
-                  <select class="status-select" data-order-id="${order.id}" style="padding: 4px; border-radius: 4px;">
-                    <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
-                    <option value="paid" ${order.status === 'paid' ? 'selected' : ''}>Paid</option>
-                    <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
-                    <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
-                    <option value="canceled" ${order.status === 'canceled' ? 'selected' : ''}>Canceled</option>
-                  </select>
-                </td>
-                <td>
-                  <div style="display:flex;gap:8px;align-items:center">
-                    <button class="btn btn--secondary btn--small view-order-btn" data-order-id="${order.id}">View</button>
-                    ${order.status !== 'shipped' && order.status !== 'delivered' && order.status !== 'canceled' ? `
-                      <button class="btn btn--primary btn--small ship-order-btn" data-order-id="${order.id}">Ship</button>
-                    ` : `
-                      <span class="badge ${getStatusBadgeClass(order.status)}">${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
-                    `}
-                    <button class="btn btn--danger btn--small delete-order-btn" data-order-id="${order.id}" title="Delete order">Delete</button>
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+
+      <div class="panel" style="margin-bottom:12px">
+        <div class="panel__header"><h3 class="panel__title">Create Order</h3></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+          <select id="fCustomer" class="form-input">
+            <option value="">Select customer</option>
+            ${users.map((user) => `<option value="${user._id}">${user.name} (${user.email})</option>`).join('')}
+          </select>
+          <select id="fProduct" class="form-input">
+            <option value="">Select product</option>
+            ${products.map((product) => `<option value="${product._id}">${product.name} (${product.sku})</option>`).join('')}
+          </select>
+          <input id="fQty" class="form-input" type="number" min="1" value="1" placeholder="Quantity" />
+          <select id="fPriority" class="form-input">
+            <option value="medium">Priority: Medium</option>
+            <option value="low">Priority: Low</option>
+            <option value="high">Priority: High</option>
+          </select>
+          <button id="createOrder" class="btn btn--primary">Create</button>
+        </div>
       </div>
-    </div>
-  `;
 
-  // Export button
-  const exportBtn = container.querySelector('#exportOrdersBtn');
-  exportBtn?.addEventListener('click', () => exportOrdersCSV(orders));
+      <div class="panel">
+        <div class="panel__header"><h3 class="panel__title">Orders (${total})</h3></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Priority</th><th>Created At</th><th>Updated At</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              ${items.length === 0 ? `<tr><td colspan="8">No results found</td></tr>` : items.map((order) => `
+                <tr>
+                  <td>${customerName(order)}</td>
+                  <td>${order.items.map((item) => `${productName(item.productId)} x${item.quantity}`).join(', ')}</td>
+                  <td>$${order.total.toFixed(2)}</td>
+                  <td>
+                    <select class="form-input order-status" data-id="${order._id}">
+                      <option value="pending" ${order.status === 'pending' ? 'selected' : ''}>Pending</option>
+                      <option value="paid" ${order.status === 'paid' ? 'selected' : ''}>Paid</option>
+                      <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Shipped</option>
+                      <option value="delivered" ${order.status === 'delivered' ? 'selected' : ''}>Delivered</option>
+                      <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select class="form-input order-priority" data-id="${order._id}">
+                      <option value="low" ${order.priority === 'low' ? 'selected' : ''}>Low</option>
+                      <option value="medium" ${order.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                      <option value="high" ${order.priority === 'high' ? 'selected' : ''}>High</option>
+                    </select>
+                  </td>
+                  <td>${formatDate(order.createdAt)}</td>
+                  <td>${formatDate(order.updatedAt)}</td>
+                  <td style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn--danger btn--small delete-order" data-id="${order._id}">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+          <button id="prevPage" class="btn btn--secondary" ${page <= 1 ? 'disabled' : ''}>Previous</button>
+          <span>Page ${page} of ${pages || 1}</span>
+          <button id="nextPage" class="btn btn--secondary" ${pages > 0 && page >= pages ? 'disabled' : ''}>Next</button>
+        </div>
+      </div>
+    `;
 
-  // Status change
-  container.querySelectorAll<HTMLSelectElement>('.status-select').forEach(select => {
-    select.addEventListener('change', () => {
-      const orderId = Number(select.dataset.orderId);
-      const newStatus = select.value as Order['status'];
-      const currentOrders = loadOrders();
-      const updated = currentOrders.map(o => 
-        o.id === orderId ? { ...o, status: newStatus } : o
-      );
-      saveOrders(updated);
+    const qSearch = document.getElementById('qSearch') as HTMLInputElement;
+    const qStatus = document.getElementById('qStatus') as HTMLSelectElement;
+    const qPriority = document.getElementById('qPriority') as HTMLSelectElement;
+    const qFrom = document.getElementById('qFrom') as HTMLInputElement;
+    const qTo = document.getElementById('qTo') as HTMLInputElement;
+    const qSort = document.getElementById('qSort') as HTMLSelectElement;
+    const qOrder = document.getElementById('qOrder') as HTMLSelectElement;
+    const qLimit = document.getElementById('qLimit') as HTMLSelectElement;
+
+    (document.getElementById('applyFilters') as HTMLButtonElement).addEventListener('click', () => {
+      query = {
+        ...query,
+        page: 1,
+        search: qSearch.value.trim(),
+        status: qStatus.value as '' | OrderStatus,
+        priority: qPriority.value as '' | OrderPriority,
+        from: qFrom.value,
+        to: qTo.value,
+        sort: qSort.value,
+        order: qOrder.value as 'asc' | 'desc',
+        limit: Number(qLimit.value),
+      };
+      void loadData();
     });
-  });
 
-  // View, Ship, Delete buttons
-  container.querySelectorAll<HTMLButtonElement>('.view-order-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const orderId = Number(btn.dataset.orderId);
-      const o = loadOrders().find(x => x.id === orderId);
-      if (o) showOrderModal(o);
-    });
-  });
+    const fCustomer = document.getElementById('fCustomer') as HTMLSelectElement;
+    const fProduct = document.getElementById('fProduct') as HTMLSelectElement;
+    const fQty = document.getElementById('fQty') as HTMLInputElement;
+    const fPriority = document.getElementById('fPriority') as HTMLSelectElement;
 
-  container.querySelectorAll<HTMLButtonElement>('.ship-order-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const orderId = Number(btn.dataset.orderId);
-      const currentOrders = loadOrders();
-      const updated = currentOrders.map(o => o.id === orderId ? { ...o, status: 'shipped' as const } : o);
-      saveOrders(updated);
-      renderOrders(container);
-      // show toast
-      import('../../ui/modal').then(m => m.showToast('Order marked as shipped'));
-    });
-  });
+    (document.getElementById('createOrder') as HTMLButtonElement).addEventListener('click', async () => {
+      const customerId = fCustomer.value;
+      const productId = fProduct.value;
+      const quantity = Number(fQty.value);
+      const priority = fPriority.value as OrderPriority;
 
-  // Delete with modal confirmation and toast
-  container.querySelectorAll('.delete-order-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const orderId = Number((btn as HTMLElement).dataset.orderId);
-      const { confirmModal, showToast } = await import('../../ui/modal');
-      const ok = await confirmModal('Delete this order?', 'Delete Order');
-      if (!ok) return;
-      const currentOrders = loadOrders();
-      const filtered = currentOrders.filter(o => o.id !== orderId);
-      saveOrders(filtered);
-      renderOrders(container);
-      showToast('Order deleted');
+      if (!customerId || !productId || Number.isNaN(quantity) || quantity < 1) {
+        showToast('Customer, product and valid quantity are required');
+        return;
+      }
+
+      try {
+        await createOrder({
+          customerId,
+          priority,
+          items: [{ productId, quantity }],
+        });
+        showToast('Order created');
+        window.dispatchEvent(new Event('novadash:data-changed'));
+        void loadData();
+      } catch (error: any) {
+        showToast(error.message || 'Failed to create order');
+      }
     });
-  });
+
+    container.querySelectorAll<HTMLSelectElement>('.order-status').forEach((select) => {
+      select.addEventListener('change', async () => {
+        const id = select.dataset.id;
+        if (!id) return;
+        try {
+          await updateOrder(id, { status: select.value as OrderStatus });
+          showToast('Order status updated');
+          void loadData();
+        } catch (error: any) {
+          showToast(error.message || 'Failed to update status');
+        }
+      });
+    });
+
+    container.querySelectorAll<HTMLSelectElement>('.order-priority').forEach((select) => {
+      select.addEventListener('change', async () => {
+        const id = select.dataset.id;
+        if (!id) return;
+        try {
+          await updateOrder(id, { priority: select.value as OrderPriority });
+          showToast('Order priority updated');
+          void loadData();
+        } catch (error: any) {
+          showToast(error.message || 'Failed to update priority');
+        }
+      });
+    });
+
+    container.querySelectorAll<HTMLButtonElement>('.delete-order').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.id;
+        if (!id) return;
+        const ok = await confirmModal('Delete this order?', 'Delete Order');
+        if (!ok) return;
+        try {
+          await deleteOrder(id);
+          showToast('Order deleted (soft delete)');
+          window.dispatchEvent(new Event('novadash:data-changed'));
+          void loadData();
+        } catch (error: any) {
+          showToast(error.message || 'Failed to delete order');
+        }
+      });
+    });
+
+    (document.getElementById('prevPage') as HTMLButtonElement).addEventListener('click', () => {
+      if (query.page > 1) {
+        query.page -= 1;
+        void loadData();
+      }
+    });
+
+    (document.getElementById('nextPage') as HTMLButtonElement).addEventListener('click', () => {
+      if (!pages || query.page < pages) {
+        query.page += 1;
+        void loadData();
+      }
+    });
+  }
+
+  void loadData();
 }
-

@@ -73,6 +73,14 @@ export async function listProducts(query: any) {
   if (query.inStock === "true") filter.stock = { $gt: 0 };
   if (query.inStock === "false") filter.stock = 0;
 
+  const from = query.from ? new Date(String(query.from)) : null;
+  const to = query.to ? new Date(String(query.to)) : null;
+  if ((from && !Number.isNaN(from.getTime())) || (to && !Number.isNaN(to.getTime()))) {
+    filter.createdAt = {};
+    if (from && !Number.isNaN(from.getTime())) filter.createdAt.$gte = from;
+    if (to && !Number.isNaN(to.getTime())) filter.createdAt.$lte = to;
+  }
+
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([

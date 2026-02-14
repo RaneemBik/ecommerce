@@ -58,6 +58,14 @@ export async function listCustomers(query: any) {
   if (query.email) filter.email = { $regex: String(query.email), $options: "i" };
   if (query.phone) filter.phone = { $regex: String(query.phone), $options: "i" };
 
+  const from = query.from ? new Date(String(query.from)) : null;
+  const to = query.to ? new Date(String(query.to)) : null;
+  if ((from && !Number.isNaN(from.getTime())) || (to && !Number.isNaN(to.getTime()))) {
+    filter.createdAt = {};
+    if (from && !Number.isNaN(from.getTime())) filter.createdAt.$gte = from;
+    if (to && !Number.isNaN(to.getTime())) filter.createdAt.$lte = to;
+  }
+
   const skip = (page - 1) * limit;
 
   const [items, total] = await Promise.all([

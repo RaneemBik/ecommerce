@@ -11,13 +11,13 @@
 }
 
 :root {
-  /* Core palette */
-  --bg-primary: #0b0f1a;
-  --bg-secondary: #111827;
-  --bg-card: #1a2236;
-  --bg-card-hover: #212d47;
-  --bg-input: #141c2e;
-  --bg-sidebar: #0e1525;
+  /* Light theme (default) */
+  --bg-primary: #f9fafb;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f3f4f6;
+  --bg-input: #ffffff;
+  --bg-sidebar: #ffffff;
 
   /* Accent */
   --accent: #6c5ce7;
@@ -32,13 +32,13 @@
   --danger: #ff6b6b;
 
   /* Text */
-  --text-primary: #e8ecf4;
-  --text-secondary: #8b95a8;
-  --text-muted: #5a6478;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
 
   /* Borders */
-  --border: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.1);
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
 
   /* Radius */
   --radius-sm: 8px;
@@ -47,9 +47,32 @@
   --radius-full: 9999px;
 
   /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 40px var(--accent-glow);
+}
+
+[data-theme="dark"] {
+  /* Dark theme overrides */
+  --bg-primary: #0b0f1a;
+  --bg-secondary: #111827;
+  --bg-card: #1a2236;
+  --bg-card-hover: #212d47;
+  --bg-input: #141c2e;
+  --bg-sidebar: #0e1525;
+
+  /* Text */
+  --text-primary: #e8ecf4;
+  --text-secondary: #8b95a8;
+  --text-muted: #5a6478;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.06);
+  --border-light: rgba(255, 255, 255, 0.1);
+
+  /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --shadow-glow: 0 0 40px var(--accent-glow);
 }
 
 html {
