@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document, Model, Types } from "mongoose";
 
 export type OrderStatus = "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+export type OrderPriority = "low" | "medium" | "high";
 
 export interface IOrderItem {
   productId: Types.ObjectId;
@@ -13,6 +14,7 @@ export interface IOrder extends Document {
   customerId: Types.ObjectId;
   items: IOrderItem[];
   status: OrderStatus;
+  priority: OrderPriority;
   total: number;
   isDeleted: boolean;
   createdAt: Date;
@@ -37,6 +39,11 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       enum: ["pending", "paid", "shipped", "delivered", "cancelled"],
       default: "pending"
+    },
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high"],
+      default: "medium"
     },
     total: { type: Number, required: true, min: 0 },
     // BONUS soft delete

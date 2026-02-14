@@ -36,6 +36,8 @@ export const listProductsQuerySchema = z.object({
     minPrice: z.string().optional(),
     maxPrice: z.string().optional(),
     inStock: z.enum(["true", "false"]).optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
     isDeleted: z.enum(["true", "false"]).optional()
   })
 });

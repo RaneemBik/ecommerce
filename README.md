@@ -60,7 +60,20 @@ Professional README for the Ecommerce API repository. This project contains a No
    npm run dev
    ```
 
-4. Open the frontend at http://localhost:5173 (Vite default) and the backend is proxied at `/api` to http://localhost:4000 in dev.
+4. Seed example data (optional but recommended)
+
+   ```bash
+   cd backend
+   npm run seed
+   ```
+
+   Seed creates:
+   - Creative customers/products/orders sample data
+   - Default admin user for login:
+     - Email: `admin@novadash.com`
+     - Password: `Admin@123`
+
+5. Open the frontend at http://localhost:5173 (Vite default) and the backend is proxied at `/api` to http://localhost:4000 in dev.
 
 
 ## Useful commands

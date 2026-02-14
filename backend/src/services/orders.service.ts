@@ -10,6 +10,7 @@ function toNumber(val: any, def: number) {
 
 export async function createOrder(data: {
   customerId: string;
+  priority?: "low" | "medium" | "high";
   items: { productId: string; quantity: number }[];
 }) {
   // 1) ensure customer exists (and not deleted)
@@ -63,6 +64,7 @@ export async function createOrder(data: {
     customerId: new mongoose.Types.ObjectId(data.customerId),
     items: orderItems,
     total,
+    priority: data.priority ?? "medium",
     status: "pending"
   });
 
@@ -97,7 +99,26 @@ export async function listOrders(query: any) {
   else filter.isDeleted = false;
 
   if (query.status) filter.status = query.status;
+  if (query.priority) filter.priority = query.priority;
   if (query.customerId) filter.customerId = query.customerId;
+
+  const from = query.from ? new Date(String(query.from)) : null;
+  const to = query.to ? new Date(String(query.to)) : null;
+  if ((from && !Number.isNaN(from.getTime())) || (to && !Number.isNaN(to.getTime()))) {
+    filter.createdAt = {};
+    if (from && !Number.isNaN(from.getTime())) filter.createdAt.$gte = from;
+    if (to && !Number.isNaN(to.getTime())) filter.createdAt.$lte = to;
+  }
+
+  if (query.search) {
+    const searchRegex = { $regex: String(query.search), $options: "i" };
+    const matchedCustomers = await Customer.find(
+      { isDeleted: false, $or: [{ name: searchRegex }, { email: searchRegex }] },
+      { _id: 1 }
+    );
+    const matchedCustomerIds = matchedCustomers.map((c) => c._id);
+    filter.customerId = { $in: matchedCustomerIds };
+  }
 
   const skip = (page - 1) * limit;
 
@@ -120,7 +141,7 @@ export async function listOrders(query: any) {
   };
 }
 
-export async function updateOrder(id: string, data: { status?: string }) {
+export async function updateOrder(id: string, data: { status?: string; priority?: string }) {
   const order = await Order.findByIdAndUpdate(id, data, { new: true })
     .populate("customerId", "name email")
     .populate("items.productId", "name price category");

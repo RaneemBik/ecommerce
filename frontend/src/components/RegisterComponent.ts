@@ -226,19 +226,13 @@ function bindRegisterEvents(): void {
       email: emailInput.value.trim(),
       password: pwInput.value,
     })
-      .then((response) => {
-        // Store user session
-        localStorage.setItem("novadash_user", JSON.stringify({
-          name: response.user.name,
-          email: response.user.email,
-          role: response.user.isAdmin ? "Administrator" : "User",
-        }));
-        navigate("/admin");
+      .then(() => {
+        navigate("/");
       })
       .catch((error) => {
         registerBtn.classList.remove("loading");
         registerBtn.disabled = false;
-        
+
         // Show error message
         emailInput.classList.add("form-input--error");
         emailError.textContent = error.message || "Registration failed. Email may already exist.";

@@ -1,6 +1,8 @@
 // API service layer for backend communication
 
 const API_BASE = '/api';
+export const AUTH_TOKEN_KEY = 'auth_token';
+export const AUTH_USER_KEY = 'novadash_user';
 
 interface ApiError {
   message: string;
@@ -12,17 +14,17 @@ class ApiClient {
 
   constructor() {
     // Load token from localStorage on init
-    this.token = localStorage.getItem('auth_token');
+    this.token = localStorage.getItem(AUTH_TOKEN_KEY);
   }
 
   setToken(token: string) {
     this.token = token;
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
   }
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
   }
 
   private getHeaders(): HeadersInit {
@@ -113,18 +115,29 @@ export interface AuthResponse {
   };
 }
 
+export interface RegisterResponse {
+  id: string;
+  name: string;
+  email: string;
+  isAdmin: boolean;
+  createdAt: string;
+}
+
 export async function login(data: LoginRequest): Promise<AuthResponse> {
   const result = await api.post<AuthResponse>('/auth/login', data);
   api.setToken(result.token);
   return result;
 }
 
-export async function register(data: RegisterRequest): Promise<AuthResponse> {
-  const result = await api.post<AuthResponse>('/auth/register', data);
-  api.setToken(result.token);
-  return result;
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  return api.post<RegisterResponse>('/auth/register', data);
 }
 
 export function logout() {
   api.clearToken();
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+export function isAuthenticated() {
+  return Boolean(localStorage.getItem(AUTH_TOKEN_KEY));
 }

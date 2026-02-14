@@ -29,6 +29,8 @@ export const listCustomersQuerySchema = z.object({
     name: z.string().optional(),
     email: z.string().optional(),
     phone: z.string().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
     isDeleted: z.enum(["true", "false"]).optional()
   })
 });
