@@ -1,6 +1,6 @@
 # Ecommerce API (Fullstack)
 
-Professional README for the Ecommerce API repository. This project contains a Node/TypeScript backend and a Vite + TypeScript frontend admin UI.
+This project contains a Node/TypeScript backend and a Vite + TypeScript frontend admin UI.
 
 ## Repository layout
 
@@ -9,7 +9,7 @@ Professional README for the Ecommerce API repository. This project contains a No
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 18.0+
 - npm
 - MongoDB
 
@@ -89,5 +89,6 @@ cd frontend && npm run dev
 
 ```
 
+## End Points
 
 <img width="931" height="443" alt="image" src="https://github.com/user-attachments/assets/452a4e84-ecf4-4eb7-b0be-c5f682bb452c" />
