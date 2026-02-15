@@ -1,6 +1,6 @@
-export let siteName = "NovaDash";
+export let siteName = "Nitro";
 
-const STORAGE_KEY = "novadash_siteName";
+const STORAGE_KEY = "nitro_siteName";
 
 export function setSiteName(name: string) {
   siteName = name;

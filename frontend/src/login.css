@@ -1,6 +1,4 @@
-/* ─────────────────────────────────────────────────
-   NovaDash — Login Page
-   ───────────────────────────────────────────────── */
+
 
 .login-wrapper {
   display: flex;
@@ -8,7 +6,6 @@
   overflow: hidden;
 }
 
-/* ─── Left: Visual Panel ─── */
 .login-visual {
   flex: 1;
   display: none;
@@ -208,9 +205,12 @@
   left: 14px;
   width: 18px;
   height: 18px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   pointer-events: none;
 }
+
+/* Make input icons more visible in light theme */
+[data-theme="light"] .form-input-icon { color: var(--text-primary); }
 
 .form-input {
   width: 100%;
@@ -398,6 +398,18 @@
 }
 
 /* ─── Divider ─── */
+
+/* Enhanced visual polish for login */
+.login-wrapper { background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%); }
+.login-card { background: var(--bg-card); border-radius: var(--radius-md); padding: 1.25rem; box-shadow: var(--shadow-md); }
+.login-card__brand-name { letter-spacing: -0.2px; }
+.login-card__heading { font-size: 1.85rem; }
+.btn-login { padding: 0.95rem; font-size: 1rem; border-radius: 10px; }
+
+@media (max-width: 600px) {
+  .login-form-side { padding: 1.25rem; }
+  .login-card { max-width: 100%; }
+}
 .login-divider {
   display: flex;
   align-items: center;

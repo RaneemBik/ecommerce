@@ -1,6 +1,4 @@
-/* ─────────────────────────────────────────────────
-   NovaDash — Simple SPA Router
-   ───────────────────────────────────────────────── */
+
 
 import { renderLogin } from "./components/LoginComponent";
 import { renderRegister } from "./components/RegisterComponent";

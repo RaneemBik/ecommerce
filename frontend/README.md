@@ -1,4 +1,4 @@
-# NovaDash — Admin Panel (UI)
+# Nitro — Admin Panel (UI)
 
 Small front-end admin panel demo built with Vite + TypeScript (vanilla DOM).
 
@@ -15,7 +15,7 @@ What to know
 - Storage keys:
   - `novadash_user` — fake session object
   - `novadash_theme` — theme preference (`dark`|`light`)
-  - `novadash_siteName` — persisted site name
+  - `nitro_siteName` — persisted site name
   - `novadash_notifications` — persisted notifications array
 - Routes:
   - `/` — login

@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────
-   NovaDash — Admin Dashboard Component
+  Nitro — Admin Dashboard Component
    ───────────────────────────────────────────────── */
 
 import { icons } from "./icons";

@@ -1,6 +1,4 @@
-/* ─────────────────────────────────────────────────
-   NovaDash — Login Component
-   ───────────────────────────────────────────────── */
+
 
 import { icons } from "../icons";
 import { navigate } from "../router";

@@ -9,7 +9,7 @@ function requireEnv(name: string): string {
 }
 
 export const env = {
-  PORT: Number(process.env.PORT ?? 5000),
+  PORT: Number(process.env.PORT ?? 4000),
   MONGO_URI: requireEnv("MONGO_URI"),
   JWT_SECRET: requireEnv("JWT_SECRET"),
   JWT_EXPIRES: process.env.JWT_EXPIRES ?? "7d"

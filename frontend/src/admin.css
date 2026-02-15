@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────
-   NovaDash — Admin Panel
+  Nitro — Admin Panel
    ───────────────────────────────────────────────── */
 
 .admin-layout {
@@ -311,6 +311,35 @@
   height: 20px;
 }
 
+/* Improve icon visibility (prefer higher contrast in light theme) */
+/* Target common UI svgs but intentionally exclude colored/stat block icons */
+.form-input-icon svg,
+.topbar__search-icon svg,
+.topbar__icon-btn svg,
+.sidebar__link svg,
+.sidebar__logout svg,
+.activity-item__icon svg,
+.btn-icon svg,
+.stat-card__trend svg {
+  color: var(--text-secondary);
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Stronger contrast for light theme */
+[data-theme="light"] .form-input-icon svg,
+[data-theme="light"] .topbar__search-icon svg,
+[data-theme="light"] .topbar__icon-btn svg,
+[data-theme="light"] .sidebar__link svg,
+[data-theme="light"] .sidebar__logout svg,
+[data-theme="light"] .activity-item__icon svg,
+[data-theme="light"] .btn-icon svg,
+[data-theme="light"] .stat-card__trend svg {
+  color: var(--text-primary);
+  stroke: currentColor;
+  fill: none;
+}
+
 .topbar__notif-dot {
   position: absolute;
   top: 6px;
@@ -431,6 +460,24 @@
 .stat-card__icon--pink   { background: linear-gradient(135deg, #fd79a8, #e84393); }
 .stat-card__icon--amber  { background: linear-gradient(135deg, #fdcb6e, #f39c12); }
 
+/* Improve visibility of stat icons in light mode: use darker icon strokes */
+[data-theme="light"] .stat-card__icon {
+  /* slightly stronger background so icon has contrast */
+  box-shadow: none;
+}
+
+[data-theme="light"] .stat-card__icon svg {
+  color: var(--text-primary);
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Keep white icons in dark theme for contrast */
+[data-theme="dark"] .stat-card__icon svg {
+  color: #fff;
+  stroke: currentColor;
+}
+
 .stat-card__trend {
   display: flex;
   align-items: center;
@@ -468,9 +515,7 @@
   color: var(--text-secondary);
 }
 
-/* ════════════════════════════════════════════════
-   DASHBOARD PANELS
-   ════════════════════════════════════════════════ */
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
