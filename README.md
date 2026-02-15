@@ -86,4 +86,8 @@ cd backend && npm run dev
 
 # Start frontend
 cd frontend && npm run dev
+
 ```
+
+
+<img width="931" height="443" alt="image" src="https://github.com/user-attachments/assets/452a4e84-ecf4-4eb7-b0be-c5f682bb452c" />
