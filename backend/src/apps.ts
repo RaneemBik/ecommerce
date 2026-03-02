@@ -11,6 +11,7 @@ import { authRouter } from "./routes/auth.route";
 import { usersRouter } from "./routes/users.routes";
 import { productsRouter } from "./routes/products.routes";
 import { ordersRouter } from "./routes/orders.routes";
+import { imagesRouter } from "./routes/images.routes";
 import { protect } from "./middlewares/auth.middleware";
 
 export const app = express();
@@ -28,6 +29,7 @@ app.get("/health", (req, res) => {
 
 // Routes
 app.use("/api/auth", authRouter);
+app.use("/api/images", imagesRouter);
 app.use("/api/users", protect, usersRouter);
 app.use("/api/products", protect, productsRouter);
 app.use("/api/orders", protect, ordersRouter);
